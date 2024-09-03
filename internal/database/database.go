@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 
+	"yk-dc-bot/internal/apperrors"
 	"yk-dc-bot/internal/config"
 
 	"github.com/jmoiron/sqlx"
@@ -24,12 +25,31 @@ func NewPostgresDB(cfg *config.Config) (*Database, error) {
 
 	db, err := sqlx.Connect("postgres", dbURL)
 	if err != nil {
-		return nil, fmt.Errorf("error connecting to database: %w", err)
+		return nil, apperrors.Wrap(err, "DB_CONNECTION_ERROR", "error connecting to database")
 	}
 
 	if err := RunMigrations(db); err != nil {
-		return nil, fmt.Errorf("error running migrations: %w", err)
+		return nil, apperrors.Wrap(err, "DB_MIGRATION_ERROR", "error running migrations")
 	}
 
 	return &Database{db}, nil
+}
+
+func (db *Database) QueryIter(query string, args ...interface{}) func(yield func(map[string]interface{}, error) bool) {
+	return func(yield func(map[string]interface{}, error) bool) {
+		rows, err := db.Queryx(query, args...)
+		if err != nil {
+			yield(nil, err)
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			result := make(map[string]interface{})
+			err := rows.MapScan(result)
+			if !yield(result, err) {
+				return
+			}
+		}
+	}
 }

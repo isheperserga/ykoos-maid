@@ -1,6 +1,10 @@
 package util
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"yk-dc-bot/internal/logger"
+
+	"github.com/bwmarrin/discordgo"
+)
 
 type InteractionResponse struct {
 	Content    string
@@ -51,7 +55,8 @@ func DeferResponse(s *discordgo.Session, i *discordgo.InteractionCreate, options
 	}
 
 	return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+		// Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: responseData,
 	})
 }
@@ -79,4 +84,17 @@ func flagsFromOptions(resp InteractionResponse) discordgo.MessageFlags {
 		return discordgo.MessageFlagsEphemeral
 	}
 	return 0
+}
+
+func SendErrorEmbed(s *discordgo.Session, i *discordgo.Interaction, errorMessage string, log *logger.Logger) {
+	errorEmbed := NewEmbed(StyleError, "Error", errorMessage).
+		WithFooter("Error").
+		Build()
+
+	_, editErr := s.InteractionResponseEdit(i, &discordgo.WebhookEdit{
+		Embeds: &[]*discordgo.MessageEmbed{errorEmbed},
+	})
+	if editErr != nil {
+		log.Error("Error editing interaction response with error message", "error", editErr)
+	}
 }

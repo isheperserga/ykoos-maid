@@ -3,12 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"go.uber.org/fx"
 
+	"yk-dc-bot/internal/apperrors"
 	"yk-dc-bot/internal/bot"
 	"yk-dc-bot/internal/config"
 	"yk-dc-bot/internal/database"
@@ -36,8 +38,8 @@ func main() {
 		fx.Invoke(runBot),
 	)
 
-	if err := app.Start(ctx); err != nil {
-		os.Exit(1)
+	if err := app.Start(context.Background()); err != nil {
+		log.Fatal("Failed to start application", "error", apperrors.Wrap(err, "APP_START_ERROR", "Failed to start application"))
 	}
 
 	sc := make(chan os.Signal, 1)

@@ -8,6 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"go.uber.org/fx"
 
+	"yk-dc-bot/internal/apperrors"
 	"yk-dc-bot/internal/commands"
 	"yk-dc-bot/internal/config"
 	"yk-dc-bot/internal/logger"
@@ -44,7 +45,7 @@ func registerCommands(session *discordgo.Session, log *logger.Logger) error {
 
 	err := session.Open()
 	if err != nil {
-		return fmt.Errorf("error opening Discord session: %w", err)
+		return apperrors.Wrap(err, "DISCORD_SESSION_OPEN_ERROR", "Error opening Discord session")
 	}
 	defer session.Close()
 
@@ -54,8 +55,7 @@ func registerCommands(session *discordgo.Session, log *logger.Logger) error {
 		log.Info(fmt.Sprintf("Registering command: %s", cmd.Name))
 		_, err := session.ApplicationCommandCreate(session.State.User.ID, "", cmd)
 		if err != nil {
-			log.Error(fmt.Sprintf("Error registering command %s: %v", cmd.Name, err))
-			return fmt.Errorf("error registering command %s: %w", cmd.Name, err)
+			return apperrors.Wrap(err, "COMMAND_REGISTRATION_ERROR", fmt.Sprintf("Error registering command %s", cmd.Name))
 		}
 		log.Info(fmt.Sprintf("Successfully registered command: %s", cmd.Name))
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"yk-dc-bot/internal/apperrors"
 	"yk-dc-bot/internal/config"
 	"yk-dc-bot/internal/logger"
 
@@ -28,11 +29,8 @@ func NewRedisClient(cfg *config.Config, log *logger.Logger) (*Client, error) {
 
 	_, err := rdb.Ping(ctx).Result()
 	if err != nil {
-		log.Error("Failed to connect to Redis", "error", err)
-		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
+		return nil, apperrors.Wrap(err, "REDIS_CONNECTION_ERROR", "failed to connect to Redis")
 	}
-
-	fmt.Println("hdev api key", cfg.HdevApiKey)
 
 	log.Info("Successfully connected to Redis")
 	return &Client{rdb: rdb, log: log}, nil
@@ -41,9 +39,7 @@ func NewRedisClient(cfg *config.Config, log *logger.Logger) (*Client, error) {
 func (c *Client) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
 	err := c.rdb.Set(ctx, key, value, expiration).Err()
 	if err != nil {
-		c.log.Error("Failed to set cache", "key", key, "error", err)
-	} else {
-		c.log.Debug("Successfully set cache", "key", key, "expiration", expiration)
+		return apperrors.Wrap(err, "REDIS_SET_ERROR", fmt.Sprintf("Failed to set cache for key: %s", key))
 	}
 	return err
 }
@@ -51,13 +47,10 @@ func (c *Client) Set(ctx context.Context, key string, value interface{}, expirat
 func (c *Client) Get(ctx context.Context, key string) (string, error) {
 	value, err := c.rdb.Get(ctx, key).Result()
 	if err == redis.Nil {
-		c.log.Debug("Cache miss", "key", key)
-		return "", err
+		return "", apperrors.New("REDIS_CACHE_MISS", fmt.Sprintf("Cache miss for key: %s", key))
 	} else if err != nil {
-		c.log.Error("Failed to get from cache", "key", key, "error", err)
-		return "", err
+		return "", apperrors.Wrap(err, "REDIS_GET_ERROR", fmt.Sprintf("Failed to get from cache for key: %s", key))
 	}
-	c.log.Debug("Cache hit", "key", key)
 	return value, nil
 }
 

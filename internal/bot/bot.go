@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"yk-dc-bot/internal/apperrors"
 	"yk-dc-bot/internal/config"
 	"yk-dc-bot/internal/handlers"
 	"yk-dc-bot/internal/logger"
@@ -22,7 +23,7 @@ type DiscordBot struct {
 func NewDiscordBot(cfg *config.Config, service *service.Service, log *logger.Logger) (*DiscordBot, error) {
 	session, err := discordgo.New("Bot " + cfg.DiscordBotToken)
 	if err != nil {
-		return nil, fmt.Errorf("error creating Discord session: %w", err)
+		return nil, apperrors.Wrap(err, "DISCORD_SESSION_ERROR", "error creating Discord session")
 	}
 
 	bot := &DiscordBot{

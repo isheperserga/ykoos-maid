@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 	"time"
+	"yk-dc-bot/internal/apperrors"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -16,7 +17,7 @@ var tables = []interface{}{
 func RunMigrations(db *sqlx.DB) error {
 	for _, table := range tables {
 		if err := createTableIfNotExists(db, table); err != nil {
-			return err
+			return apperrors.Wrap(err, "MIGRATION_ERROR", fmt.Sprintf("Failed to create table for %T", table))
 		}
 	}
 	return nil
@@ -34,7 +35,7 @@ func createTableIfNotExists(db *sqlx.DB, model interface{}) error {
 
 	_, err := db.Exec(query)
 	if err != nil {
-		return fmt.Errorf("error creating table %s: %w", tableName, err)
+		return apperrors.Wrap(err, "TABLE_CREATION_ERROR", fmt.Sprintf("Error creating table %s", tableName))
 	}
 
 	return nil

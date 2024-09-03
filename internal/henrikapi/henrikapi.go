@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"time"
+	"yk-dc-bot/internal/apperrors"
 	"yk-dc-bot/internal/config"
 	"yk-dc-bot/internal/logger"
 	redisclient "yk-dc-bot/internal/redisclient"
@@ -48,11 +49,11 @@ func (c *HenrikDevAPI) makeRequest(endpoint string) ([]byte, error) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("error reading response body: %w", err)
+		return nil, apperrors.Wrap(err, "API_REQUEST_ERROR", "error making request")
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API request failed with status code %d: %s", resp.StatusCode, string(body))
+		return nil, apperrors.Wrap(err, "API_STATUS_ERROR", fmt.Sprintf("API request failed with status code %d", resp.StatusCode))
 	}
 
 	return body, nil
@@ -155,11 +156,11 @@ func (c *HenrikDevAPI) GetAccountByNameTag(name, tag string) (*AccountData, erro
 		Data   AccountData `json:"data"`
 	}
 	if err := json.Unmarshal(body, &response); err != nil {
-		return nil, fmt.Errorf("error unmarshaling response: %w", err)
+		return nil, apperrors.Wrap(err, "ACCOUNT_FETCH_ERROR", "Failed to fetch account data")
 	}
 
 	if response.Status != 200 {
-		return nil, fmt.Errorf("API request failed with status code %d", response.Status)
+		return nil, apperrors.Wrap(err, "ACCOUNT_FETCH_ERROR", fmt.Sprintf("Failed to fetch account data, status code: %d", response.Status))
 	}
 
 	cacheData, _ := json.Marshal(response.Data)
@@ -191,11 +192,11 @@ func (c *HenrikDevAPI) GetMMRByPUUID(region, puuid string) (*MMRData, error) {
 		Data   MMRData `json:"data"`
 	}
 	if err := json.Unmarshal(body, &response); err != nil {
-		return nil, fmt.Errorf("error unmarshaling response: %w", err)
+		return nil, apperrors.Wrap(err, "MMR_FETCH_ERROR", "Failed to fetch MMR data")
 	}
 
 	if response.Status != 200 {
-		return nil, fmt.Errorf("API request failed with status code %d", response.Status)
+		return nil, apperrors.Wrap(err, "MMR_FETCH_ERROR", "Failed to fetch MMR data")
 	}
 
 	cacheData, _ := json.Marshal(response.Data)
@@ -229,11 +230,11 @@ func (c *HenrikDevAPI) GetDetailedAccountByPUUID(puuid string) (*DetailedAccount
 		Data   DetailedAccountData `json:"data"`
 	}
 	if err := json.Unmarshal(body, &response); err != nil {
-		return nil, fmt.Errorf("error unmarshaling response: %w", err)
+		return nil, apperrors.Wrap(err, "DETAILED_ACCOUNT_FETCH_ERROR", "Failed to fetch detailed account data")
 	}
 
 	if response.Status != 200 {
-		return nil, fmt.Errorf("API request failed with status code %d", response.Status)
+		return nil, apperrors.Wrap(err, "DETAILED_ACCOUNT_FETCH_ERROR", "Failed to fetch detailed account data")
 	}
 
 	cacheData, _ := json.Marshal(response.Data)

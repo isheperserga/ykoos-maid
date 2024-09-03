@@ -2,11 +2,14 @@ package service
 
 import (
 	"fmt"
+	"time"
+	"yk-dc-bot/internal/apperrors"
 	"yk-dc-bot/internal/config"
 	"yk-dc-bot/internal/database"
 	"yk-dc-bot/internal/henrikapi"
 	"yk-dc-bot/internal/logger"
 	"yk-dc-bot/internal/redisclient"
+	"yk-dc-bot/internal/util"
 )
 
 type Service struct {
@@ -34,22 +37,32 @@ type RankData struct {
 	CardURL     string
 }
 
-func (s *Service) GetPlayerRankData(name, tag string) (*RankData, error) {
+func (s *Service) GetPlayerRankData(name, tag string, tracker *util.ProgressTracker) (*RankData, error) {
+	time.Sleep(500 * time.Millisecond)
+
+	tracker.SendUpdate(fmt.Sprintf("> right now, i'm fetching %s#%s's rank data", name, tag))
 	accountData, err := s.HenrikAPI.GetAccountByNameTag(name, tag)
 	if err != nil {
-		s.Log.Error("Error getting account data", "error", err)
-		return nil, fmt.Errorf("error fetching account data: %w", err)
+		tracker.SendError(err)
+		return nil, apperrors.Wrap(err, "ACCOUNT_DATA_ERROR", "error fetching account data")
 	}
 
+	time.Sleep(700 * time.Millisecond)
+
+	tracker.SendUpdate("> alright... just some more things...")
 	mmrData, err := s.HenrikAPI.GetMMRByPUUID(accountData.Region, accountData.Puuid)
 	if err != nil {
-		s.Log.Error("Error getting MMR data", "error", err)
-		return nil, fmt.Errorf("error fetching rank data: %w", err)
+		tracker.SendError(err)
+		return nil, apperrors.Wrap(err, "MMR_DATA_ERROR", "error fetching rank data")
 	}
 
+	time.Sleep(700 * time.Millisecond)
+
+	tracker.SendUpdate("> oh, we can't forget about their card!")
 	detailedAccountData, err := s.HenrikAPI.GetDetailedAccountByPUUID(accountData.Puuid)
 	if err != nil {
-		s.Log.Error("Error getting detailed account data", "error", err)
+		tracker.SendError(err)
+		return nil, apperrors.Wrap(err, "DETAILED_ACCOUNT_DATA_ERROR", "error fetching detailed account data")
 	}
 
 	rankData := &RankData{
@@ -66,5 +79,6 @@ func (s *Service) GetPlayerRankData(name, tag string) (*RankData, error) {
 		rankData.CardURL = mmrData.CurrentData.Images.Large
 	}
 
+	tracker.SendDone()
 	return rankData, nil
 }
