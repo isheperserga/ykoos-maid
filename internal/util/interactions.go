@@ -55,7 +55,6 @@ func DeferResponse(s *discordgo.Session, i *discordgo.InteractionCreate, options
 	}
 
 	return s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-		// Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: responseData,
 	})
@@ -86,9 +85,9 @@ func flagsFromOptions(resp InteractionResponse) discordgo.MessageFlags {
 	return 0
 }
 
-func SendErrorEmbed(s *discordgo.Session, i *discordgo.Interaction, errorMessage string, log *logger.Logger) {
+func SendErrorEmbed(s *discordgo.Session, i *discordgo.Interaction, errorMessage string, log *logger.Logger, footerString string) {
 	errorEmbed := NewEmbed(StyleError, "Error", errorMessage).
-		WithFooter("Error").
+		WithFooter(footerString).
 		Build()
 
 	_, editErr := s.InteractionResponseEdit(i, &discordgo.WebhookEdit{

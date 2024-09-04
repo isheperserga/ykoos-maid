@@ -11,6 +11,7 @@ import (
 	"yk-dc-bot/internal/apperrors"
 	"yk-dc-bot/internal/commands"
 	"yk-dc-bot/internal/config"
+	_ "yk-dc-bot/internal/handlers"
 	"yk-dc-bot/internal/logger"
 )
 
@@ -49,9 +50,9 @@ func registerCommands(session *discordgo.Session, log *logger.Logger) error {
 	}
 	defer session.Close()
 
-	cmds := commands.GetAll()
+	commands.RegisterAll()
 
-	for _, cmd := range cmds {
+	for _, cmd := range commands.GetAll() {
 		log.Info(fmt.Sprintf("Registering command: %s", cmd.Name))
 		_, err := session.ApplicationCommandCreate(session.State.User.ID, "", cmd)
 		if err != nil {

@@ -3,14 +3,20 @@ package commands
 import (
 	"sync"
 
+	"yk-dc-bot/internal/config"
+	"yk-dc-bot/internal/logger"
+	"yk-dc-bot/internal/service"
+
 	"github.com/bwmarrin/discordgo"
 )
+
+type CommandHandler func(s *discordgo.Session, i *discordgo.InteractionCreate, svc *service.Service, log *logger.Logger, cfg *config.Config)
 
 type Command struct {
 	Name        string
 	Description string
 	Options     []*discordgo.ApplicationCommandOption
-	Handler     func(s *discordgo.Session, i *discordgo.InteractionCreate)
+	Handler     CommandHandler
 }
 
 var (

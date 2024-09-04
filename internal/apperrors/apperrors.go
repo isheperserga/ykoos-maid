@@ -43,6 +43,7 @@ func HandleError(err error, context string) (string, string) {
 		if publicMessage == "" {
 			publicMessage = "An error occurred. Please try again later."
 		}
+
 		return publicMessage,
 			fmt.Sprintf("%s: %s (Code: %s)", context, appErr.Message, appErr.Code)
 	}

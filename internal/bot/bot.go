@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"yk-dc-bot/internal/apperrors"
+	"yk-dc-bot/internal/commands"
 	"yk-dc-bot/internal/config"
 	"yk-dc-bot/internal/handlers"
 	"yk-dc-bot/internal/logger"
@@ -34,6 +35,7 @@ func NewDiscordBot(cfg *config.Config, service *service.Service, log *logger.Log
 	}
 
 	bot.registerHandlers()
+	commands.RegisterAll()
 
 	return bot, nil
 }
@@ -57,11 +59,10 @@ func (bot *DiscordBot) registerHandlers() {
 	bot.Session.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		switch i.Type {
 		case discordgo.InteractionApplicationCommand:
-			for _, handler := range handlers.CommandHandlers {
-				if handler.Name == i.ApplicationCommandData().Name {
-					handler.Handler(s, i, bot.Service, bot.Log, bot.Config)
-					return
-				}
+			if cmd, ok := commands.Get(i.ApplicationCommandData().Name); ok {
+				cmd.Handler(s, i, bot.Service, bot.Log, bot.Config)
+			} else {
+				bot.Log.Error("Unknown command", "name", i.ApplicationCommandData().Name)
 			}
 		case discordgo.InteractionModalSubmit:
 			for _, handler := range handlers.ModalHandlers {

@@ -3,7 +3,6 @@ package util
 import (
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -62,7 +61,6 @@ func NewEmbed(style EmbedStyle, title, description string) *EmbedBuilder {
 		Title:       title,
 		Description: description,
 		Color:       style.Color,
-		Timestamp:   time.Now().Format(time.RFC3339),
 	}
 
 	if style.FooterText != "" {

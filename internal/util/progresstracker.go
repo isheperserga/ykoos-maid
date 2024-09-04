@@ -7,9 +7,10 @@ import (
 )
 
 type ProgressUpdate struct {
-	Message string
-	Done    bool
-	Error   error
+	Message       string
+	Done          bool
+	Error         error
+	PublicMessage string
 }
 
 type ProgressTracker struct {
@@ -48,7 +49,11 @@ func (pt *ProgressTracker) trackProgress() {
 				return
 			}
 			if update.Error != nil {
-				errorEmbed := NewEmbed(StyleError, "Error", update.Error.Error()).
+				errorMessage := update.Error.Error()
+				if update.PublicMessage != "" {
+					errorMessage = update.PublicMessage
+				}
+				errorEmbed := NewEmbed(StyleError, "Error", errorMessage).
 					WithFooter(pt.Footer).
 					Build()
 				_, _ = pt.Session.InteractionResponseEdit(pt.Interaction, &discordgo.WebhookEdit{
@@ -85,9 +90,9 @@ func (pt *ProgressTracker) SendUpdate(message string) {
 	}
 }
 
-func (pt *ProgressTracker) SendError(err error) {
+func (pt *ProgressTracker) SendError(err error, publicMessage string) {
 	select {
-	case pt.Updates <- ProgressUpdate{Error: err}:
+	case pt.Updates <- ProgressUpdate{Error: err, PublicMessage: publicMessage}:
 	case <-pt.done:
 	}
 }

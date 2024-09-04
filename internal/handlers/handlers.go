@@ -9,8 +9,11 @@ import (
 )
 
 type CommandHandler struct {
-	Name    string
-	Handler func(*discordgo.Session, *discordgo.InteractionCreate, *service.Service, *logger.Logger, *config.Config)
+	Name                     string
+	Handler                  func(*discordgo.Session, *discordgo.InteractionCreate, *service.Service, *logger.Logger, *config.Config)
+	Options                  []discordgo.ApplicationCommandOption
+	DefaultMemberPermissions *int64
+	DMPermission             *bool
 }
 
 type ModalHandler struct {

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 	"yk-dc-bot/internal/apperrors"
 	"yk-dc-bot/internal/config"
@@ -53,7 +55,7 @@ func (c *HenrikDevAPI) makeRequest(endpoint string) ([]byte, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, apperrors.Wrap(err, "API_STATUS_ERROR", fmt.Sprintf("API request failed with status code %d", resp.StatusCode))
+		return nil, apperrors.Wrap(err, "API_STATUS_ERROR_"+strconv.Itoa(resp.StatusCode), fmt.Sprintf("API request failed with status code %d", resp.StatusCode))
 	}
 
 	return body, nil
@@ -148,6 +150,10 @@ func (c *HenrikDevAPI) GetAccountByNameTag(name, tag string) (*AccountData, erro
 	endpoint := fmt.Sprintf("/v2/account/%s/%s", name, tag)
 	body, err := c.makeRequest(endpoint)
 	if err != nil {
+		if strings.Contains(err.Error(), "404") {
+			return nil, apperrors.Wrap(err, "ACCOUNT_FETCH_ERROR", "Account not found")
+		}
+
 		return nil, err
 	}
 
@@ -160,6 +166,10 @@ func (c *HenrikDevAPI) GetAccountByNameTag(name, tag string) (*AccountData, erro
 	}
 
 	if response.Status != 200 {
+		if response.Status == 404 {
+			return nil, apperrors.Wrap(err, "ACCOUNT_FETCH_ERROR", "Account not found")
+		}
+
 		return nil, apperrors.Wrap(err, "ACCOUNT_FETCH_ERROR", fmt.Sprintf("Failed to fetch account data, status code: %d", response.Status))
 	}
 

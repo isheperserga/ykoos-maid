@@ -17,8 +17,8 @@ import (
 func init() {
 	commands.AddRegistration(func() {
 		commands.Register(&commands.Command{
-			Name:        "rank",
-			Description: "Get a player's Valorant rank",
+			Name:        "tracker",
+			Description: "Get a player's Valorant tracker stats",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
@@ -27,16 +27,16 @@ func init() {
 					Required:    true,
 				},
 			},
-			Handler: handleRankCommand,
+			Handler: handleTrackerCommand,
 		})
 	})
 }
 
-func handleRankCommand(s *discordgo.Session, i *discordgo.InteractionCreate, svc *service.Service, log *logger.Logger, cfg *config.Config) {
+func handleTrackerCommand(s *discordgo.Session, i *discordgo.InteractionCreate, svc *service.Service, log *logger.Logger, cfg *config.Config) {
 	options := i.ApplicationCommandData().Options
 	if len(options) < 1 {
 		util.RespondToInteraction(s, i, util.InteractionResponse{
-			Content:   "please provide a valid valorant username and tag (e.g., /rank username#tag)",
+			Content:   "please provide a valid valorant username and tag (e.g., /tracker username#tag)",
 			Ephemeral: true,
 		})
 		return
@@ -58,7 +58,7 @@ func handleRankCommand(s *discordgo.Session, i *discordgo.InteractionCreate, svc
 		Ephemeral:     false,
 		CustomContent: "",
 		Embeds: []*discordgo.MessageEmbed{
-			util.NewEmbed(util.StyleDefault, fmt.Sprintf("fetching rank for %s#%s", name, tag), "> please wait a moment").
+			util.NewEmbed(util.StyleDefault, fmt.Sprintf("fetching tracker data for %s#%s", name, tag), "> please wait a moment").
 				WithFooter("valorant integration").
 				Build(),
 		},
@@ -68,28 +68,39 @@ func handleRankCommand(s *discordgo.Session, i *discordgo.InteractionCreate, svc
 		return
 	}
 
-	tracker := util.NewProgressTracker(s, i.Interaction, fmt.Sprintf("fetching rank for %s#%s", name, tag), "valorant integration", util.StyleDefault)
+	tracker := util.NewProgressTracker(s, i.Interaction, fmt.Sprintf("fetching tracker data for %s#%s", name, tag), "valorant integration", util.StyleDefault)
 	tracker.Start()
 
-	rankData, err := svc.GetPlayerRankData(name, tag, tracker)
+	playerData, err := svc.GetPlayerTrackerData(name, tag, tracker)
 	if err != nil {
-		errorMessage, logMessage := apperrors.HandleError(err, "getting player rank data")
+		errorMessage, logMessage := apperrors.HandleError(err, "getting player tracker data")
 		log.Error(logMessage)
 		util.SendErrorEmbed(s, i.Interaction, errorMessage, log, "valorant integration")
 		return
 	}
 
-	rankEmbed := util.NewEmbed(util.StyleSuccess, fmt.Sprintf("%s#%s", rankData.AccountName, rankData.AccountTag), "").
-		WithColor(util.ColorGold).
-		WithField("rank", "> "+rankData.Rank, false).
-		WithField("ranked rating", "> "+fmt.Sprintf("%d/100", rankData.RR), false).
-		WithField("last game", "> "+fmt.Sprintf("%+d rr", rankData.LastGameRR), false).
-		WithThumbnail(rankData.CardURL).
-		WithFooter("valorant integration").
-		Build()
+	var embed *discordgo.MessageEmbed
+
+	if playerData.IsPrivate {
+		embed = util.NewEmbed(util.StyleWarning, fmt.Sprintf("%s#%s's Tracker Stats", name, tag), "This profile is private").
+			WithColor(util.ColorGold).
+			Build()
+	} else {
+		embed = util.NewEmbed(util.StyleSuccess, fmt.Sprintf("%s#%s's Tracker Stats", name, tag), "").
+			WithColor(util.ColorGreen).
+			WithField("Wins / Losses", fmt.Sprintf("%s / %s (%s winrate)", playerData.Wins, playerData.Losses, playerData.WinPct), true).
+			WithField("Headshot %", playerData.HsPct, true).
+			WithField("K/D Ratio", playerData.KdRatio, true).
+			WithField("Damage Per Round", playerData.DamagePerRound, true).
+			WithField("Time Played", playerData.TimePlayed, true).
+			WithField("Rank", playerData.Rank, true).
+			WithThumbnail(playerData.AvatarUrl).
+			WithFooter("valorant integration").
+			Build()
+	}
 
 	_, err = s.InteractionResponseEdit(i.Interaction, &discordgo.WebhookEdit{
-		Embeds: &[]*discordgo.MessageEmbed{rankEmbed},
+		Embeds: &[]*discordgo.MessageEmbed{embed},
 	})
 	if err != nil {
 		log.Error("Error editing final interaction response", "error", apperrors.Wrap(err, "INTERACTION_EDIT_ERROR", "failed to edit interaction response"))
