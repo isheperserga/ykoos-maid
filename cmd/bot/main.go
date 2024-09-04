@@ -39,7 +39,7 @@ func main() {
 	)
 
 	if err := app.Start(context.Background()); err != nil {
-		log.Fatal("Failed to start application", "error", apperrors.Wrap(err, "APP_START_ERROR", "Failed to start application"))
+		log.Fatal("Failed to start application", "error", apperrors.Wrap(err, "APP_START_ERROR", "Failed to start application", ""))
 	}
 
 	sc := make(chan os.Signal, 1)

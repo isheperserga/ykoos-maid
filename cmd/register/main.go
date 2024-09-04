@@ -46,7 +46,7 @@ func registerCommands(session *discordgo.Session, log *logger.Logger) error {
 
 	err := session.Open()
 	if err != nil {
-		return apperrors.Wrap(err, "DISCORD_SESSION_OPEN_ERROR", "Error opening Discord session")
+		return apperrors.Wrap(err, "DISCORD_SESSION_OPEN_ERROR", "Error opening Discord session", "")
 	}
 	defer session.Close()
 

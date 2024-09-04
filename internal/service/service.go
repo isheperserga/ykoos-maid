@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -47,12 +48,12 @@ func (s *Service) GetPlayerRankData(name, tag string, tracker *util.ProgressTrac
 	tracker.SendUpdate(fmt.Sprintf("> right now, i'm fetching %s#%s's rank data", name, tag))
 	accountData, err := s.HenrikAPI.GetAccountByNameTag(name, tag)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			tracker.SendError(apperrors.Wrap(err, "ACCOUNT_DATA_ERROR", "", ""), "Account not found")
-			return nil, apperrors.Wrap(err, "ACCOUNT_DATA_ERROR", "Account not found", "Account not found")
+		appErr := apperrors.Wrap(err, "ACCOUNT_DATA_ERROR", "error fetching account data", "There was an error. Please try again later.")
+		if errors.As(err, &appErr) && strings.Contains(appErr.Message, "not found") {
+			appErr = apperrors.New("ACCOUNT_DATA_ERROR", "Couldn't find the account via API", "Account with this Riot ID not found")
 		}
-		tracker.SendError(apperrors.Wrap(err, "ACCOUNT_DATA_ERROR", "", ""), "There was an error. Please try again later.")
-		return nil, apperrors.Wrap(err, "ACCOUNT_DATA_ERROR", "error fetching account data")
+		tracker.SendError(appErr)
+		return nil, appErr
 	}
 
 	time.Sleep(700 * time.Millisecond)
@@ -60,7 +61,7 @@ func (s *Service) GetPlayerRankData(name, tag string, tracker *util.ProgressTrac
 	tracker.SendUpdate("> alright... just some more things...")
 	mmrData, err := s.HenrikAPI.GetMMRByPUUID(accountData.Region, accountData.Puuid)
 	if err != nil {
-		tracker.SendError(apperrors.Wrap(err, "MMR_DATA_ERROR", "error fetching rank data"), "error fetching rank data")
+		tracker.SendError(apperrors.Wrap(err, "MMR_DATA_ERROR", "error fetching rank data", "There was an error. Please try again later."))
 		return nil, apperrors.Wrap(err, "MMR_DATA_ERROR", "error fetching rank data")
 	}
 
@@ -69,7 +70,7 @@ func (s *Service) GetPlayerRankData(name, tag string, tracker *util.ProgressTrac
 	tracker.SendUpdate("> oh, we can't forget about their card!")
 	detailedAccountData, err := s.HenrikAPI.GetDetailedAccountByPUUID(accountData.Puuid)
 	if err != nil {
-		tracker.SendError(apperrors.Wrap(err, "DETAILED_ACCOUNT_DATA_ERROR", "error fetching detailed account data"), "error fetching detailed account data")
+		tracker.SendError(apperrors.Wrap(err, "DETAILED_ACCOUNT_DATA_ERROR", "error fetching detailed account data", "There was an error. Please try again later."))
 		return nil, apperrors.Wrap(err, "DETAILED_ACCOUNT_DATA_ERROR", "error fetching detailed account data")
 	}
 
@@ -97,7 +98,7 @@ func (s *Service) GetPlayerTrackerData(name, tag string, tracker *util.ProgressT
 	tracker.SendUpdate(fmt.Sprintf("> right now, i'm fetching %s#%s's tracker data", name, tag))
 	playerData, err := s.TrackerAPI.GetPlayerTrackerData(name, tag)
 	if err != nil {
-		tracker.SendError(err, "")
+		tracker.SendError(apperrors.Wrap(err, "TRACKER_DATA_ERROR", "error fetching tracker data", "There was an error. Please try again later."))
 		return nil, apperrors.Wrap(err, "TRACKER_DATA_ERROR", "error fetching tracker data")
 	}
 

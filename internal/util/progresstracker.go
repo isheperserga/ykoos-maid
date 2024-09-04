@@ -2,15 +2,15 @@ package util
 
 import (
 	"sync"
+	"yk-dc-bot/internal/apperrors"
 
 	"github.com/bwmarrin/discordgo"
 )
 
 type ProgressUpdate struct {
-	Message       string
-	Done          bool
-	Error         error
-	PublicMessage string
+	Message string
+	Done    bool
+	Error   *apperrors.AppError
 }
 
 type ProgressTracker struct {
@@ -50,9 +50,6 @@ func (pt *ProgressTracker) trackProgress() {
 			}
 			if update.Error != nil {
 				errorMessage := update.Error.Error()
-				if update.PublicMessage != "" {
-					errorMessage = update.PublicMessage
-				}
 				errorEmbed := NewEmbed(StyleError, "Error", errorMessage).
 					WithFooter(pt.Footer).
 					Build()
@@ -90,9 +87,9 @@ func (pt *ProgressTracker) SendUpdate(message string) {
 	}
 }
 
-func (pt *ProgressTracker) SendError(err error, publicMessage string) {
+func (pt *ProgressTracker) SendError(err *apperrors.AppError) {
 	select {
-	case pt.Updates <- ProgressUpdate{Error: err, PublicMessage: publicMessage}:
+	case pt.Updates <- ProgressUpdate{Error: err}:
 	case <-pt.done:
 	}
 }

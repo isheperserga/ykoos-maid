@@ -8,8 +8,8 @@ import (
 type AppError struct {
 	Code        string
 	Message     string
-	PublicError string
 	Err         error
+	UserMessage string
 }
 
 func (e *AppError) Error() string {
@@ -20,31 +20,37 @@ func (e *AppError) Unwrap() error {
 	return e.Err
 }
 
-func New(code, message string, publicError ...string) *AppError {
-	var pubErr string
-	if len(publicError) > 0 {
-		pubErr = publicError[0]
+func New(code, message string, userMessage ...string) *AppError {
+	err := &AppError{
+		Code:    code,
+		Message: message,
 	}
-	return &AppError{Code: code, Message: message, PublicError: pubErr}
+	if len(userMessage) > 0 {
+		err.UserMessage = userMessage[0]
+	}
+	return err
 }
 
-func Wrap(err error, code, message string, publicError ...string) *AppError {
-	var pubErr string
-	if len(publicError) > 0 {
-		pubErr = publicError[0]
+func Wrap(err error, code, message string, userMessage ...string) *AppError {
+	appErr := &AppError{
+		Code:    code,
+		Message: message,
+		Err:     err,
 	}
-	return &AppError{Code: code, Message: message, PublicError: pubErr, Err: err}
+	if len(userMessage) > 0 {
+		appErr.UserMessage = userMessage[0]
+	}
+	return appErr
 }
 
 func HandleError(err error, context string) (string, string) {
 	var appErr *AppError
 	if errors.As(err, &appErr) {
-		publicMessage := appErr.PublicError
-		if publicMessage == "" {
-			publicMessage = "An error occurred. Please try again later."
+		if appErr.UserMessage == "" {
+			appErr.UserMessage = "An error occurred. Please try again later."
 		}
 
-		return publicMessage,
+		return appErr.UserMessage,
 			fmt.Sprintf("%s: %s (Code: %s)", context, appErr.Message, appErr.Code)
 	}
 	return "An unexpected error occurred. Please try again later.",
